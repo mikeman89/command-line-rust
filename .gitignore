@@ -17,3 +17,6 @@ Cargo.lock
 
 # Cant touch this files used to testing permission denied files
 */cant-touch-this
+
+# DS Store
+.DS_Store
