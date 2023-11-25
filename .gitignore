@@ -19,4 +19,4 @@ Cargo.lock
 */cant-touch-this
 
 # DS Store
-.DS_Store
+*/.DS_Store
