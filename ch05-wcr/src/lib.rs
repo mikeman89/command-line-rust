@@ -14,8 +14,8 @@ pub struct Config {
     chars: bool,
 }
 
-#[derive(Debug,PartialEq)]
-pub struct FileInfo{
+#[derive(Debug, PartialEq)]
+pub struct FileInfo {
     num_lines: usize,
     num_words: usize,
     num_bytes: usize,
@@ -53,7 +53,7 @@ pub fn get_args() -> MyResult<Config> {
         .arg(
             Arg::with_name("chars")
                 .value_name("chars")
-                .short("M")
+                .short("m")
                 .long("chars")
                 .help("Number of chars to display")
                 .takes_value(false)
@@ -90,20 +90,44 @@ pub fn get_args() -> MyResult<Config> {
 }
 
 pub fn run(config: Config) -> MyResult<()> {
+    let mut total_lines = 0;
+    let mut total_words = 0;
+    let mut total_bytes = 0;
+    let mut total_chars = 0;
+
     for filename in &config.files {
         match open(filename) {
             Err(err) => eprintln!("{}: {}", filename, err),
             Ok(file) => {
                 if let Ok(info) = count(file) {
-                    println!("{:>8}{:>8}{:>8} {}", 
-                    info.num_lines,
-                    info.num_words,
-                    info.num_bytes,
-                    filename
-                )
+                    println!(
+                        "{}{}{}{}{}",
+                        format_field(info.num_lines, config.lines),
+                        format_field(info.num_words, config.words),
+                        format_field(info.num_bytes, config.bytes),
+                        format_field(info.num_chars, config.chars),
+                        if filename == "-" {
+                            "".to_string()
+                        } else {
+                            format!(" {}", filename)
+                        }
+                    );
+                    total_lines += info.num_lines;
+                    total_words += info.num_words;
+                    total_bytes += info.num_bytes;
+                    total_chars += info.num_chars;
                 }
             }
         }
+    }
+    if config.files.len() > 1 {
+        println!(
+            "{}{}{}{} total",
+            format_field(total_lines, config.lines),
+            format_field(total_words, config.words),
+            format_field(total_bytes, config.bytes),
+            format_field(total_chars, config.chars),
+        );
     }
     Ok(())
 }
@@ -134,13 +158,25 @@ pub fn count(mut file: impl BufRead) -> MyResult<FileInfo> {
         line.clear();
     }
 
+    Ok(FileInfo {
+        num_lines: num_lines,
+        num_words: num_words,
+        num_bytes: num_bytes,
+        num_chars: num_chars,
+    })
+}
 
-    Ok(FileInfo { num_lines:num_lines, num_words: num_words, num_bytes: num_bytes, num_chars: num_chars })
+fn format_field(value: usize, show: bool) -> String {
+    if show {
+        format!("{:>8}", value)
+    } else {
+        "".to_string()
+    }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{count, FileInfo};
+    use super::{count, format_field, FileInfo};
     use std::io::Cursor;
 
     #[test]
@@ -155,5 +191,12 @@ mod tests {
             num_bytes: 48,
         };
         assert_eq!(info.unwrap(), expected);
+    }
+
+    #[test]
+    fn test_format_field() {
+        assert_eq!(format_field(1, false), "");
+        assert_eq!(format_field(3, true), "       3");
+        assert_eq!(format_field(10, true), "      10")
     }
 }
